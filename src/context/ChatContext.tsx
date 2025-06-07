@@ -274,7 +274,7 @@ try {
           s.id === finalUpdatedSession.id ? finalUpdatedSession : s
         )
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error('Chat submission error / Failed to fetch:', error); // Detaillierteres Logging
 
       const errorMessageContent =
