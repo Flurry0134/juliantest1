@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useTheme } from '../../context/ThemeContext';
-import { MoreHorizontal, Download, FileText, FileJson, ThumbsUp, Brackets, Languages, Database, RefreshCw } from 'lucide-react';
+// NEU: Zusätzliche Icons für die verschiedenen Modi importiert
+import { Download, FileJson, Brackets, Languages, RefreshCw, Brain, BookOpen, Zap } from 'lucide-react';
+import type { ChatMode } from '../../context/ChatContext';
 
 const ChatHeader: React.FC = () => {
-  const { currentSession, isCitationMode, toggleCitationMode, exportChat, createNewSession, useKnowledgeBase, toggleKnowledgeBase } = useChat();
+  // NEU: chatMode und setChatMode werden aus dem Context geholt
+  const { 
+    currentSession, 
+    isCitationMode, 
+    toggleCitationMode, 
+    exportChat, 
+    createNewSession, 
+    chatMode,
+    setChatMode 
+  } = useChat();
   const { language, setLanguage } = useTheme();
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -22,6 +33,42 @@ const ChatHeader: React.FC = () => {
       createNewSession();
     }
   };
+  
+  // NEU: Logik zum Weiterschalten des Modus in der Reihenfolge:
+  // Fallback -> Nur KB -> Nur LLM -> ...
+  const cycleChatMode = () => {
+    const modes: ChatMode[] = ['knowledgebase_fallback', 'knowledgebase', 'llm'];
+    const currentIndex = modes.indexOf(chatMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setChatMode(modes[nextIndex]);
+  };
+
+  // NEU: Konfiguration für Icon, Farbe und Tooltip des Modus-Buttons
+  const getChatModeConfig = () => {
+    switch (chatMode) {
+      case 'llm':
+        return {
+          color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+          icon: <Brain size={18} />,
+          tooltip: language === 'en' ? 'LLM Mode (General AI)' : 'LLM-Modus (Allgemeines KI-Wissen)',
+        };
+      case 'knowledgebase':
+        return {
+          color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+          icon: <BookOpen size={18} />,
+          tooltip: language === 'en' ? 'Knowledge Base Only' : 'Nur Wissensdatenbank',
+        };
+      case 'knowledgebase_fallback':
+      default:
+        return {
+          color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+          icon: <Zap size={18} />,
+          tooltip: language === 'en' ? 'Knowledge Base + LLM Fallback' : 'Wissensdatenbank + LLM-Fallback',
+        };
+    }
+  };
+
+  const modeConfig = getChatModeConfig();
 
   return (
     <div className="border-b border-gray-200 dark:border-gray-700 py-2 px-4">
@@ -33,33 +80,30 @@ const ChatHeader: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Sprachumschalter */}
           <button
             onClick={toggleLanguage}
             className="p-2 rounded-md text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 group relative"
-            aria-label="Toggle language"
             title={language === 'en' ? 'Switch to German' : 'Zu Englisch wechseln'}
           >
             <Languages size={18} />
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {language === 'en' ? 'Switch to German' : 'Zu Englisch wechseln'}
-            </span>
           </button>
           
+          {/* ========================================================== */}
+          {/* NEU: Der Modus-Umschalt-Button ersetzt den alten Button     */}
+          {/* ========================================================== */}
           <button
-            onClick={toggleKnowledgeBase}
-            className={`p-2 rounded-md transition-colors group relative ${
-              useKnowledgeBase
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-            }`}
-            aria-label="Toggle knowledge base"
+            onClick={cycleChatMode}
+            className={`p-2 rounded-md transition-colors group relative ${modeConfig.color}`}
+            title={modeConfig.tooltip}
           >
-            <Database size={18} />
+            {modeConfig.icon}
             <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {language === 'en' ? 'Toggle Knowledge Base' : 'Wissensdatenbank umschalten'}
+              {modeConfig.tooltip}
             </span>
           </button>
           
+          {/* Zitationsmodus-Button */}
           <button
             onClick={toggleCitationMode}
             className={`p-2 rounded-md transition-colors group relative ${
@@ -67,53 +111,32 @@ const ChatHeader: React.FC = () => {
                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
-            aria-label="Toggle citation mode"
+            title={language === 'en' ? 'Toggle citation mode' : 'Zitationsmodus umschalten'}
           >
             <Brackets size={18} />
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {language === 'en' ? 'Toggle citation mode' : 'Zitationsmodus umschalten'}
-            </span>
           </button>
 
+          {/* Chat zurücksetzen-Button */}
           <button
             onClick={handleResetChat}
             className="p-2 rounded-md text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 group relative"
-            aria-label="Reset chat"
+            title={language === 'en' ? 'Reset Chat' : 'Chat zurücksetzen'}
           >
             <RefreshCw size={18} />
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {language === 'en' ? 'Reset Chat' : 'Chat zurücksetzen'}
-            </span>
           </button>
           
+          {/* Export-Button */}
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="p-2 rounded-md text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 group relative"
-              aria-label="Export chat"
+              title={language === 'en' ? 'Export chat' : 'Chat exportieren'}
             >
               <Download size={18} />
-              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {language === 'en' ? 'Export chat' : 'Chat exportieren'}
-              </span>
             </button>
             
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => handleExport('pdf')}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <FileText size={16} className="mr-2" />
-                  {language === 'en' ? 'Export as PDF' : 'Als PDF exportieren'}
-                </button>
-                <button
-                  onClick={() => handleExport('txt')}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <FileText size={16} className="mr-2" />
-                  {language === 'en' ? 'Export as TXT' : 'Als TXT exportieren'}
-                </button>
                 <button
                   onClick={() => handleExport('json')}
                   className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
