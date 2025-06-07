@@ -201,23 +201,35 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     );
     setIsLoading(true);
 
-    try {
-      // =======================================================================
-      // SEHR WICHTIG: ERSETZE DIESE URL MIT DEINER AKTUELLEN NGROK-URL + "/ask"
-      // Beispiel: const apiUrl = 'https://<deine-neue-ngrok-id>.ngrok-free.app/ask';
-      // =======================================================================
+try {
+      // Deine API-URL ist korrekt
       const apiUrl = 'https://d864-78-42-249-25.ngrok-free.app/ask';
 
-      console.log(`Sende Anfrage an: ${apiUrl} mit Frage: "${content}"`);
+      // HINWEIS: 'currentMode' muss den Wert des ausgewählten Buttons enthalten.
+      // Beispiel: "Knowledge Base" oder "General LLM"
+      // Du musst sicherstellen, dass diese Variable in deinem Code existiert und den richtigen Wert hat.
+      const currentMode = "Knowledge Base"; // Dies ist nur ein Beispiel, passe es an deine Logik an.
 
+      console.log(`Sende Anfrage an: ${apiUrl} mit Frage: "${content}" und Modus: "${currentMode}"`);
+
+      // 'm const' wurde zu 'const' korrigiert und 'mode' wurde zum body hinzugefügt
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question: content }),
+        body: JSON.stringify({
+          question: content,
+          mode: currentMode // KORREKTUR: Das 'mode'-Feld wird jetzt mitgesendet
+        }),
       });
 
+      // ... dein restlicher Code zur Verarbeitung der Antwort
+      
+    } catch (error) {
+      console.error("Fehler beim Senden der Anfrage:", error);
+      // Logik zur Fehlerbehandlung
+    }
       if (!response.ok) {
         // Versuche, mehr Details aus der Fehlerantwort zu bekommen
         const errorData = await response
