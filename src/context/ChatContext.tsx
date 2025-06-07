@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from 'react';
 
-// Annahme der Typdefinitionen
+// Typ-Definitionen
 interface Message {
   id: string;
   content: string;
@@ -31,12 +31,17 @@ interface ChatSession {
   updatedAt: Date;
 }
 
+// NEU: Typ für die verschiedenen Chat-Modi
+export type ChatMode = 'llm' | 'knowledgebase' | 'knowledgebase_fallback';
+
 interface ChatContextType {
   currentSession: ChatSession | null;
   sessions: ChatSession[];
   messages: Message[];
   isCitationMode: boolean;
   isLoading: boolean;
+  chatMode: ChatMode; // NEU
+  setChatMode: (mode: ChatMode) => void; // NEU
   toggleCitationMode: () => void;
   sendMessage: (content: string) => Promise<void>;
   createNewSession: () => void;
@@ -62,6 +67,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isCitationMode, setIsCitationMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  // NEU: Zustand für den Chat-Modus, mit 'knowledgebase_fallback' als Standard
+  const [chatMode, setChatMode] = useState<ChatMode>('knowledgebase_fallback');
+
 
   const _createNewSessionLogic = () => {
     const newSessionId = Date.now().toString();
@@ -78,36 +86,44 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     return newSession;
   };
 
+  // Lade Sessions UND den letzten Chat-Modus beim Start
   useEffect(() => {
     const savedSessions = localStorage.getItem('chatSessions');
-    if (savedSessions) {
-        try {
-            const parsedSessions = JSON.parse(savedSessions).map((s: any) => ({
-                ...s,
-                createdAt: new Date(s.createdAt),
-                updatedAt: new Date(s.updatedAt),
-                messages: s.messages.map((m: any) => ({...m, timestamp: new Date(m.timestamp)}))
-            }));
-            setSessions(parsedSessions);
-            const lastSessionId = localStorage.getItem('lastSessionId');
-            const lastSession = lastSessionId ? parsedSessions.find((s: ChatSession) => s.id === lastSessionId) : parsedSessions[0];
+    // NEU: Lade den gespeicherten Chat-Modus
+    const savedChatMode = localStorage.getItem('chatMode') as ChatMode;
+    if (savedChatMode) {
+      setChatMode(savedChatMode);
+    }
 
-            if(lastSession) {
-                setCurrentSession(lastSession);
-                setMessages(lastSession.messages);
-            } else {
-                 _createNewSessionLogic();
-            }
-        } catch (e) {
-            console.error("Fehler beim Laden der Sessions:", e);
-            _createNewSessionLogic();
+    if (savedSessions) {
+      try {
+        const parsedSessions = JSON.parse(savedSessions).map((s: any) => ({
+            ...s,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+            messages: s.messages.map((m: any) => ({...m, timestamp: new Date(m.timestamp)}))
+        }));
+        setSessions(parsedSessions);
+        const lastSessionId = localStorage.getItem('lastSessionId');
+        const lastSession = lastSessionId ? parsedSessions.find((s: ChatSession) => s.id === lastSessionId) : parsedSessions[0];
+
+        if(lastSession) {
+            setCurrentSession(lastSession);
+            setMessages(lastSession.messages);
+        } else {
+             _createNewSessionLogic();
         }
+      } catch (e) {
+        console.error("Fehler beim Laden der Sessions:", e);
+        _createNewSessionLogic();
+      }
     } else {
         _createNewSessionLogic();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Speichere Änderungen an Sessions und der letzten Session-ID
   useEffect(() => {
     if (sessions.length > 0) {
       localStorage.setItem('chatSessions', JSON.stringify(sessions));
@@ -120,11 +136,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [currentSession]);
 
+  // NEU: Speichere den Chat-Modus, wenn er sich ändert
+  useEffect(() => {
+    localStorage.setItem('chatMode', chatMode);
+  }, [chatMode]);
 
   const createNewSession = () => _createNewSessionLogic();
-
   const ensureSession = (): ChatSession => currentSession || _createNewSessionLogic();
-
   const loadSession = (sessionId: string) => {
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
@@ -154,28 +172,35 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     setSessions((prev) => prev.map((s) => (s.id === tempUpdatedSession.id ? tempUpdatedSession : s)));
     setIsLoading(true);
 
-    // ==========================================================
-    // KORRIGIERTER try...catch...finally Block START
-    // ==========================================================
     try {
       const apiUrl = 'https://d864-78-42-249-25.ngrok-free.app/ask';
       
-      // Für den Moment senden wir den Modus hartcodiert.
-      // Dies wird später durch den Zustand des Modus-Buttons ersetzt.
-      const currentMode = "Knowledge Base";
-
-      console.log(`Sende Anfrage an: ${apiUrl} mit Frage: "${content}" und Modus: "${currentMode}"`);
+      // NEU: Wandle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
+      let backendMode: string;
+      switch (chatMode) {
+        case 'llm':
+          backendMode = "General LLM";
+          break;
+        case 'knowledgebase':
+          backendMode = "Knowledge Base";
+          break;
+        case 'knowledgebase_fallback':
+        default:
+          backendMode = "Standard"; // Der Fallback-Modus im Backend
+          break;
+      }
+      
+      console.log(`Sende Anfrage mit Frage: "${content}" und Modus: "${backendMode}"`);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: content,
-          mode: currentMode,
+          mode: backendMode, // Sende den korrekten Modus-String aus dem Zustand
         }),
       });
 
-      // Die gesamte Logik zur Verarbeitung der Antwort MUSS innerhalb des try-Blocks sein
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
           detail: `API error: ${response.status} ${response.statusText}`,
@@ -185,7 +210,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       const data = await response.json();
-
       const citations: Citation[] =
         data.sources_list?.map((source: any, index: number) => ({
           id: `citation-${Date.now()}-${index}`,
@@ -230,9 +254,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-    // ==========================================================
-    // KORRIGIERTER try...catch...finally Block ENDE
-    // ==========================================================
   };
 
   const exportChat = (format: 'pdf' | 'txt' | 'json') => {
@@ -247,6 +268,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         messages,
         isCitationMode,
         isLoading,
+        chatMode, // NEU hinzugefügt
+        setChatMode, // NEU hinzugefügt
         toggleCitationMode,
         sendMessage,
         createNewSession,
