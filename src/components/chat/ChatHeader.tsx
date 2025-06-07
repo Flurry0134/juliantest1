@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useTheme } from '../../context/ThemeContext';
-// NEU: Zusätzliche Icons für die verschiedenen Modi importiert
-import { Download, FileJson, Brackets, Languages, RefreshCw, Brain, BookOpen, Zap } from 'lucide-react';
+// Das "Zap" Icon für den Fallback-Modus wird nicht mehr benötigt
+import { Download, FileJson, Brackets, Languages, RefreshCw, Brain, BookOpen } from 'lucide-react';
 import type { ChatMode } from '../../context/ChatContext';
 
 const ChatHeader: React.FC = () => {
-  // NEU: chatMode und setChatMode werden aus dem Context geholt
   const { 
     currentSession, 
     isCitationMode, 
@@ -34,16 +33,14 @@ const ChatHeader: React.FC = () => {
     }
   };
   
-  // NEU: Logik zum Weiterschalten des Modus in der Reihenfolge:
-  // Fallback -> Nur KB -> Nur LLM -> ...
-  const cycleChatMode = () => {
-    const modes: ChatMode[] = ['knowledgebase_fallback', 'knowledgebase', 'llm'];
-    const currentIndex = modes.indexOf(chatMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setChatMode(modes[nextIndex]);
+  // KORREKTUR: Vereinfachte Logik, um nur zwischen zwei Modi umzuschalten
+  const toggleChatMode = () => {
+    // Schaltet einfach zwischen 'knowledgebase' und 'llm' hin und her
+    const nextMode = chatMode === 'knowledgebase' ? 'llm' : 'knowledgebase';
+    setChatMode(nextMode);
   };
 
-  // NEU: Konfiguration für Icon, Farbe und Tooltip des Modus-Buttons
+  // KORREKTUR: Konfiguration für nur noch zwei Modi
   const getChatModeConfig = () => {
     switch (chatMode) {
       case 'llm':
@@ -53,17 +50,11 @@ const ChatHeader: React.FC = () => {
           tooltip: language === 'en' ? 'LLM Mode (General AI)' : 'LLM-Modus (Allgemeines KI-Wissen)',
         };
       case 'knowledgebase':
+      default: // 'knowledgebase' ist jetzt der Standardfall
         return {
           color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
           icon: <BookOpen size={18} />,
           tooltip: language === 'en' ? 'Knowledge Base Only' : 'Nur Wissensdatenbank',
-        };
-      case 'knowledgebase_fallback':
-      default:
-        return {
-          color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-          icon: <Zap size={18} />,
-          tooltip: language === 'en' ? 'Knowledge Base + LLM Fallback' : 'Wissensdatenbank + LLM-Fallback',
         };
     }
   };
@@ -89,11 +80,9 @@ const ChatHeader: React.FC = () => {
             <Languages size={18} />
           </button>
           
-          {/* ========================================================== */}
-          {/* NEU: Der Modus-Umschalt-Button ersetzt den alten Button     */}
-          {/* ========================================================== */}
+          {/* Angepasster Modus-Umschalt-Button */}
           <button
-            onClick={cycleChatMode}
+            onClick={toggleChatMode} // KORREKTUR: Ruft die neue Umschaltfunktion auf
             className={`p-2 rounded-md transition-colors group relative ${modeConfig.color}`}
             title={modeConfig.tooltip}
           >
@@ -103,7 +92,7 @@ const ChatHeader: React.FC = () => {
             </span>
           </button>
           
-          {/* Zitationsmodus-Button */}
+          {/* Andere Buttons bleiben unverändert */}
           <button
             onClick={toggleCitationMode}
             className={`p-2 rounded-md transition-colors group relative ${
@@ -116,7 +105,6 @@ const ChatHeader: React.FC = () => {
             <Brackets size={18} />
           </button>
 
-          {/* Chat zurücksetzen-Button */}
           <button
             onClick={handleResetChat}
             className="p-2 rounded-md text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 group relative"
@@ -125,7 +113,6 @@ const ChatHeader: React.FC = () => {
             <RefreshCw size={18} />
           </button>
           
-          {/* Export-Button */}
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
