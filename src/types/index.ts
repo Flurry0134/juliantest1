@@ -19,6 +19,7 @@ export interface Citation {
   text: string;
   source: string;
   url?: string;
+  relevance_score?: number;
 }
 
 export interface ChatSession {
