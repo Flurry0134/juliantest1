@@ -218,6 +218,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       console.log('DEBUG: data.sources:', data.sources);
       console.log('DEBUG: data.sources Typ:', typeof data.sources);
       console.log('DEBUG: data.sources Array?', Array.isArray(data.sources));
+      console.log('DEBUG Frontend: data.sources_list:', data.sources_list);
       
       const citations: Citation[] = 
         data.sources_list?.map((source: any, index: number) => {
