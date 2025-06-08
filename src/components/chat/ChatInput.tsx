@@ -12,35 +12,48 @@ const ChatInput: React.FC = () => {
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.style.height = 'auto'; // Zuerst zurücksetzen
+      // Setze die Höhe auf die scrollHeight, um das Textfeld zu vergrößern
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${scrollHeight}px`;
     }
   }, [message]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Verhindert das Standardverhalten des Formulars
     if (!message.trim() || isLoading) return;
     
     sendMessage(message);
     setMessage('');
   };
 
+  // --- ANPASSUNG HIER ---
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Submit on Ctrl+Enter or Command+Enter
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      handleSubmit(e);
+    // Wenn die Shift-Taste gedrückt ist, während Enter gedrückt wird,
+    // erlaube den normalen Zeilenumbruch und sende nicht.
+    if (e.key === 'Enter' && e.shiftKey) {
+      return;
+    }
+    
+    // Wenn NUR die Enter-Taste gedrückt wird (ohne Shift, Ctrl, Alt),
+    // sende die Nachricht.
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault(); // Verhindert, dass ein Zeilenumbruch in die Textarea eingefügt wird.
+      handleSubmit(e);    // Rufe die Submit-Funktion auf.
     }
   };
 
   return (
+    // Das form-Element ist wichtig, damit `onSubmit` funktioniert.
     <form onSubmit={handleSubmit} className="flex items-end space-x-2">
       <div className="flex-1 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
         <textarea
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message... (Ctrl+Enter to send)"
+          onKeyDown={handleKeyDown} // Der angepasste Handler wird hier verwendet
+          // --- ANPASSUNG HIER: Platzhalter-Text geändert ---
+          placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
           className="w-full px-4 py-2 resize-none outline-none focus:ring-0 bg-transparent text-gray-800 dark:text-white"
           rows={1}
           maxLength={4000}
