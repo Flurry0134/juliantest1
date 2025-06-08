@@ -220,7 +220,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       console.log('DEBUG: data.sources Array?', Array.isArray(data.sources));
       
       const citations: Citation[] = 
-        data.sources?.map((source: any, index: number) => {
+        data.sources_list?.map((source: any, index: number) => {
           console.log(`DEBUG: Verarbeite Quelle ${index}:`, source);
           console.log(`DEBUG: source.content:`, source.content);
           console.log(`DEBUG: source.source:`, source.source);
