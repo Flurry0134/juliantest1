@@ -1,6 +1,11 @@
+// Pfad: src/components/chat/MessageBubble.tsx
 import React, { useState } from 'react';
 import { Message } from '../../types';
 import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
+
+// NEU: Imports für Markdown-Rendering
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MessageBubbleProps {
   message: Message;
@@ -14,22 +19,32 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   
   const handleFeedback = (type: 'positive' | 'negative') => {
     setFeedback(type);
-    // In a real app, this would send feedback to the server
     console.log(`User gave ${type} feedback for message: ${message.id}`);
   };
 
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
-      <div 
-        className={`max-w-[80%] rounded-lg px-4 py-3 ${
+    <div className={`flex items-end gap-2 ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
+      <div  
+        className={`max-w-[80%] rounded-lg px-4 py-3 shadow-md ${
           isUserMessage 
             ? 'bg-blue-600 text-white rounded-br-none' 
-            : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
+            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
         }`}
       >
-        <div className="text-sm">{message.content}</div>
+        {/* --- ANPASSUNG HIER: Markdown-Rendering für Nachrichteninhalt --- */}
+        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ol:my-2 prose-ul:my-2">
+          {/*
+            Die ReactMarkdown Komponente wandelt den Text-String in formatiertes HTML um.
+            Sie erkennt automatisch Absätze, nummerierte Listen, Fett- und Kursivdruck etc.
+            remarkPlugins={[remarkGfm]} aktiviert erweiterte Markdown-Funktionen.
+            Die 'prose'-Klassen von TailwindCSS sorgen für ein schönes Grund-Styling.
+          */}
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
         
-        {/* Quellen (Citations) - HIER IST DIE ÄNDERUNG */}
+        {/* Quellen (Citations) */}
         {message.citations && message.citations.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-500">
             <h4 className="text-xs font-semibold mb-2 opacity-80">
@@ -39,12 +54,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               {message.citations.map((citation) => (
                 <li key={citation.id} className="text-xs flex items-center gap-2">
                   <Link size={12} className="opacity-60 flex-shrink-0" />
-                  
-                  {/* --- ÄNDERUNG HIER --- */}
-                  {/* Die <p> mit citation.text wurde entfernt. */}
-                  {/* Es wird nur noch der Dateiname (citation.source) angezeigt. */}
                   <span className="opacity-90">{citation.source}</span>
-                  
                   {citation.url && (
                     <a
                       href={citation.url}
