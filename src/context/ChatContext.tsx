@@ -212,6 +212,32 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       }
   
       const data = await response.json();
+
+            // DEBUG: Schauen wir uns die rohen Daten an
+      console.log('DEBUG: Rohe API Response:', data);
+      console.log('DEBUG: data.sources:', data.sources);
+      console.log('DEBUG: data.sources Typ:', typeof data.sources);
+      console.log('DEBUG: data.sources Array?', Array.isArray(data.sources));
+      
+      const citations: Citation[] = 
+        data.sources?.map((source: any, index: number) => {
+          console.log(`DEBUG: Verarbeite Quelle ${index}:`, source);
+          console.log(`DEBUG: source.content:`, source.content);
+          console.log(`DEBUG: source.source:`, source.source);
+          
+          const citation = {
+            id: `citation-${Date.now()}-${index}`,
+            text: source.content?.substring(0, 200) + (source.content?.length > 200 ? '...' : ''),
+            source: source.source,
+            url: source.url || undefined,
+          };
+          
+          console.log(`DEBUG: Erstellte Citation ${index}:`, citation);
+          return citation;
+        }) || [];
+      
+      console.log('DEBUG: Finale Citations Array:', citations);
+      console.log('DEBUG: Citations Länge:', citations.length);
       
       // KORRIGIERT: Verwende 'sources' statt 'sources_list'
       const citations: Citation[] = 
