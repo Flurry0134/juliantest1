@@ -155,7 +155,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
-
+  
     const sessionToUpdate = ensureSession();
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -163,19 +163,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       sender: 'user',
       timestamp: new Date(),
     };
-
-    const currentMessagesWithUser = [...(sessionToUpdate.messages || []), userMessage];
+  
+    const currentMessagesWithUser = [...sessionToUpdate.messages || [], userMessage];
     setMessages(currentMessagesWithUser);
-
+  
     const tempUpdatedSession = { ...sessionToUpdate, messages: currentMessagesWithUser };
     setCurrentSession(tempUpdatedSession);
     setSessions((prev) => prev.map((s) => (s.id === tempUpdatedSession.id ? tempUpdatedSession : s)));
     setIsLoading(true);
-
+  
     try {
       const apiUrl = 'https://f653-2a02-8071-d80-4aa0-d58d-351a-97b4-845d.ngrok-free.app/ask';
-      
-      // NEU: Wandle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
+  
+      // NEU: Handle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
       let backendMode: string;
       switch (chatMode) {
         case 'llm':
@@ -189,18 +189,20 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
           backendMode = "Standard"; // Der Fallback-Modus im Backend
           break;
       }
-      
+  
       console.log(`Sende Anfrage mit Frage: "${content}" und Modus: "${backendMode}"`);
-
+  
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           question: content,
           mode: backendMode, // Sende den korrekten Modus-String aus dem Zustand
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
           detail: `API error: ${response.status} ${response.statusText}`,
@@ -208,30 +210,54 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         console.error('API Error Response:', errorData);
         throw new Error(errorData.detail || `API error: ${response.status}`);
       }
-
+  
       const data = await response.json();
-      const citations: Citation[] =
-        data.sources_list?.map((source: any, index: number) => ({
+      
+      // KORRIGIERT: Verwende 'sources' statt 'sources_list'
+      const citations: Citation[] = 
+        data.sources?.map((source: any, index: number) => ({
           id: `citation-${Date.now()}-${index}`,
-          text: source.Inhalt_Auszug,
-          source: source.Quelle,
-          url: source.metadata?.url,
+          text: source.content?.substring(0, 200) + (source.content?.length > 200 ? '...' : ''),
+          source: source.source,
+          url: source.url || undefined,
         })) || [];
-
+  
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: data.answer_display_text,
         sender: 'bot',
         timestamp: new Date(),
-        citations: isCitationMode ? citations : undefined,
+        citations: citations.length > 0 ? citations : undefined, // KORRIGIERT: Immer Citations hinzufügen wenn vorhanden
       };
-
+  
       const finalMessages = [...currentMessagesWithUser, botMessage];
       setMessages(finalMessages);
-
+  
       const finalUpdatedSession = { ...tempUpdatedSession, messages: finalMessages, updatedAt: new Date() };
       setCurrentSession(finalUpdatedSession);
       setSessions((prev) => prev.map((s) => (s.id === finalUpdatedSession.id ? finalUpdatedSession : s)));
+    } catch (error: any) {
+      console.error('Chat submission error / Failed to fetch:', error);
+      const errorMessageContent = error.message || 'Failed to get response. Please try again.';
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: errorMessageContent,
+        sender: 'bot',
+        timestamp: new Date(),
+        isError: true,
+      };
+  
+      const finalMessages = [...currentMessagesWithUser, errorMessage];
+      setMessages(finalMessages);
+  
+      const finalUpdatedSession = { ...tempUpdatedSession, messages: finalMessages, updatedAt: new Date() };
+      setCurrentSession(finalUpdatedSession);
+      setSessions((prev) => prev.map((s) => (s.id === finalUpdatedSession.id ? finalUpdatedSession : s)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
     } catch (error: any) {
       console.error('Chat submission error / Failed to fetch:', error);
