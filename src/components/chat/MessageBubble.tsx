@@ -1,13 +1,7 @@
 // Pfad: src/components/chat/MessageBubble.tsx
 import React, { useState } from 'react';
-import { Message } from '../../types';
+import { Message } from '../../types'; // Passe den Pfad ggf. an
 import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
-
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
-// NEU: Importiere die dedizierte CSS-Datei
-import './MarkdownStyles.css'; // Passe den Pfad ggf. an, wenn deine Datei woanders liegt
 
 interface MessageBubbleProps {
   message: Message;
@@ -21,6 +15,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   
   const handleFeedback = (type: 'positive' | 'negative') => {
     setFeedback(type);
+    // In a real app, this would send feedback to the server
     console.log(`User gave ${type} feedback for message: ${message.id}`);
   };
 
@@ -33,12 +28,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
         }`}
       >
-        {/* --- ANPASSUNG HIER: Tailwind 'prose'-Klassen entfernt und neue Klasse zugewiesen --- */}
-        <div className="markdown-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        </div>
+        {/* --- ANPASSUNG HIER: CSS-Klasse für Zeilenumbrüche hinzugefügt --- */}
+        {/* Die 'whitespace-pre-wrap' Klasse sorgt dafür, dass Zeilenumbrüche (\n) im Text korrekt dargestellt werden. */}
+        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
         
         {/* Quellen (Citations) */}
         {message.citations && message.citations.length > 0 && (
