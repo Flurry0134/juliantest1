@@ -1,0 +1,41 @@
+/* Datei: src/MarkdownStyles.css */
+
+.markdown-content {
+  /* Stellt sicher, dass Zeilenumbrüche im Text respektiert werden, was für Absätze hilft. */
+  white-space: pre-wrap; 
+  word-wrap: break-word;
+  font-size: 0.875rem; /* Entspricht text-sm von Tailwind */
+  line-height: 1.25rem; /* Entspricht text-sm von Tailwind */
+}
+
+/* Styling für Absätze */
+.markdown-content p {
+  margin-top: 0.5rem;  /* Entspricht my-2 von Tailwind */
+  margin-bottom: 0.5rem;
+}
+
+/* Styling für nummerierte Listen (ol) */
+.markdown-content ol {
+  list-style-type: decimal; /* Stellt sicher, dass Nummern angezeigt werden */
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.5rem; /* Rückt die Liste ein */
+}
+
+/* Styling für unsortierte Listen (ul) */
+.markdown-content ul {
+  list-style-type: disc; /* Stellt sicher, dass Punkte angezeigt werden */
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.5rem; /* Rückt die Liste ein */
+}
+
+/* Styling für Listenelemente */
+.markdown-content li {
+  margin-bottom: 0.25rem; /* Kleiner Abstand zwischen Listenelementen */
+}
+
+/* Styling für Fettdruck */
+.markdown-content strong, .markdown-content b {
+  font-weight: 600; /* semi-bold */
+}
