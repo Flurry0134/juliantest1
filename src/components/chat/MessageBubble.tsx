@@ -29,38 +29,37 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       >
         <div className="text-sm">{message.content}</div>
         
+        {/* Quellen (Citations) - HIER IST DIE ÄNDERUNG */}
         {message.citations && message.citations.length > 0 && (
-          <>
-            {console.log('DEBUG MessageBubble: Citations erhalten:', message.citations)}
-            <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
-              <h4 className="text-xs font-medium mb-2">Sources:</h4>
-              <ul className="space-y-2">
-                {message.citations.map((citation) => {
-                  console.log('DEBUG MessageBubble: Rendere Citation:', citation);
-                  return (
-                    <li key={citation.id} className="text-xs">
-                      <div className="flex items-start">
-                        <Link size={12} className="mr-1 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p>{citation.text || 'Kein Text'}</p>
-                          <p className="text-gray-400 dark:text-gray-500 mt-1">
-                            {citation.source || 'Keine Quelle'}
-                            {citation.url && (
-                              <a href={citation.url} target="_blank" rel="noopener noreferrer"
-                                 className="inline-flex items-center ml-2 text-blue-400 hover:text-blue-300">
-                                <ExternalLink size={10} className="mr-1" />
-                                Link
-                              </a>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </>
+          <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-500">
+            <h4 className="text-xs font-semibold mb-2 opacity-80">
+              Sources:
+            </h4>
+            <ul className="space-y-1.5 list-none p-0 m-0">
+              {message.citations.map((citation) => (
+                <li key={citation.id} className="text-xs flex items-center gap-2">
+                  <Link size={12} className="opacity-60 flex-shrink-0" />
+                  
+                  {/* --- ÄNDERUNG HIER --- */}
+                  {/* Die <p> mit citation.text wurde entfernt. */}
+                  {/* Es wird nur noch der Dateiname (citation.source) angezeigt. */}
+                  <span className="opacity-90">{citation.source}</span>
+                  
+                  {citation.url && (
+                    <a
+                      href={citation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-400 hover:text-blue-300"
+                      title="Quelle öffnen"
+                    >
+                      <ExternalLink size={12} className="ml-1" />
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         
         <div className="mt-1 text-right">
