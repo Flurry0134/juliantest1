@@ -30,35 +30,37 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         <div className="text-sm">{message.content}</div>
         
         {message.citations && message.citations.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
-            <h4 className="text-xs font-medium mb-2">Sources:</h4>
-            <ul className="space-y-2">
-              {message.citations.map((citation) => (
-                <li key={citation.id} className="text-xs">
-                  <div className="flex items-start">
-                    <Link size={12} className="mr-1 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p>{citation.text}</p>
-                      <p className="text-gray-400 dark:text-gray-500 mt-1">
-                        {citation.source}
-                        {citation.url && (
-                          <a 
-                            href={citation.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center ml-2 text-blue-400 hover:text-blue-300"
-                          >
-                            <ExternalLink size={10} className="mr-1" />
-                            Link
-                          </a>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <>
+            {console.log('DEBUG MessageBubble: Citations erhalten:', message.citations)}
+            <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+              <h4 className="text-xs font-medium mb-2">Sources:</h4>
+              <ul className="space-y-2">
+                {message.citations.map((citation) => {
+                  console.log('DEBUG MessageBubble: Rendere Citation:', citation);
+                  return (
+                    <li key={citation.id} className="text-xs">
+                      <div className="flex items-start">
+                        <Link size={12} className="mr-1 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p>{citation.text || 'Kein Text'}</p>
+                          <p className="text-gray-400 dark:text-gray-500 mt-1">
+                            {citation.source || 'Keine Quelle'}
+                            {citation.url && (
+                              <a href={citation.url} target="_blank" rel="noopener noreferrer"
+                                 className="inline-flex items-center ml-2 text-blue-400 hover:text-blue-300">
+                                <ExternalLink size={10} className="mr-1" />
+                                Link
+                              </a>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </>
         )}
         
         <div className="mt-1 text-right">
