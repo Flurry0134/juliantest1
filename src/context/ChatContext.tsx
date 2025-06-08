@@ -241,7 +241,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       
       // KORRIGIERT: Verwende 'sources' statt 'sources_list'
       const citations: Citation[] = 
-        data.sources?.map((source: any, index: number) => ({
+        data.sources_list?.map((source: any, index: number) => ({
           id: `citation-${Date.now()}-${index}`,
           text: source.text || source.content || source.excerpt || 'Kein Text verfügbar',
           source: source.source || source.filename || source.document || 'Unbekannte Quelle',
