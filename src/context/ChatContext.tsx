@@ -1,125 +1,6 @@
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  ReactNode,
-} from 'react';
-// Stelle sicher, dass der Pfad zu deinen Typdefinitionen korrekt ist
-import { Message, ChatSession, Citation, ChatMode } from '../types';
+// In src/context/ChatContext.tsx
 
-interface ChatContextType {
-  currentSession: ChatSession | null;
-  sessions: ChatSession[];
-  messages: Message[];
-  isCitationMode: boolean;
-  isLoading: boolean;
-  chatMode: ChatMode;
-  setChatMode: (mode: ChatMode) => void;
-  toggleCitationMode: () => void;
-  sendMessage: (content: string) => Promise<void>;
-  createNewSession: () => void;
-  loadSession: (sessionId: string) => void;
-  exportChat: (format: 'pdf' | 'txt' | 'json') => void;
-}
-
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
-
-export const useChat = () => {
-  const context = useContext(ChatContext);
-  if (context === undefined) {
-    throw new Error('useChat must be used within a ChatProvider');
-  }
-  return context;
-};
-
-export const ChatProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isCitationMode, setIsCitationMode] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatMode, setChatMode] = useState<ChatMode>('knowledgebase_fallback');
-
-  const _createNewSessionLogic = () => {
-    const newSessionId = Date.now().toString();
-    const newSession: ChatSession = {
-      id: newSessionId,
-      title: `Chat ${sessions.length + 1}`,
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setSessions((prevSessions) => [newSession, ...prevSessions]);
-    setCurrentSession(newSession);
-    setMessages([]);
-    return newSession;
-  };
-
-  useEffect(() => {
-    const savedSessions = localStorage.getItem('chatSessions');
-    const savedChatMode = localStorage.getItem('chatMode') as ChatMode;
-    if (savedChatMode) {
-      setChatMode(savedChatMode);
-    }
-
-    if (savedSessions) {
-      try {
-        const parsedSessions = JSON.parse(savedSessions).map((s: any) => ({
-            ...s,
-            createdAt: new Date(s.createdAt),
-            updatedAt: new Date(s.updatedAt),
-            messages: s.messages.map((m: any) => ({...m, timestamp: new Date(m.timestamp)}))
-        }));
-        setSessions(parsedSessions);
-        const lastSessionId = localStorage.getItem('lastSessionId');
-        const lastSession = lastSessionId ? parsedSessions.find((s: ChatSession) => s.id === lastSessionId) : parsedSessions[0];
-
-        if(lastSession) {
-            setCurrentSession(lastSession);
-            setMessages(lastSession.messages);
-        } else {
-             _createNewSessionLogic();
-        }
-      } catch (e) {
-        console.error("Fehler beim Laden der Sessions:", e);
-        _createNewSessionLogic();
-      }
-    } else {
-        _createNewSessionLogic();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem('chatSessions', JSON.stringify(sessions));
-    }
-  }, [sessions]);
-
-  useEffect(() => {
-    if (currentSession) {
-      localStorage.setItem('lastSessionId', currentSession.id);
-    }
-  }, [currentSession]);
-
-  useEffect(() => {
-    localStorage.setItem('chatMode', chatMode);
-  }, [chatMode]);
-
-  const createNewSession = () => _createNewSessionLogic();
-  const ensureSession = (): ChatSession => currentSession || _createNewSessionLogic();
-  const loadSession = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (session) {
-      setCurrentSession(session);
-      setMessages(session.messages);
-    }
-  };
-
-  const toggleCitationMode = () => setIsCitationMode(!isCitationMode);
+// ... (Rest deines Codes bleibt gleich) ...
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
@@ -135,7 +16,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     const currentMessagesWithUser = [...sessionToUpdate.messages || [], userMessage];
     setMessages(currentMessagesWithUser);
   
-    const tempUpdatedSession = { ...sessionToUpdate, messages: currentMessagesWithUser };
+    const tempUpdatedSession = { ...sessionToUpdate, messages: currentMessagesWithUser, updatedAt: new Date() };
     setCurrentSession(tempUpdatedSession);
     setSessions((prev) => prev.map((s) => (s.id === tempUpdatedSession.id ? tempUpdatedSession : s)));
     setIsLoading(true);
@@ -179,16 +60,17 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         throw new Error(errorData.detail || `API error: ${response.status}`);
       }
   
-      const data = await response.json(); // data hat den Typ AnswerResponse
+      const data = await response.json();
       
       console.log('DEBUG: Rohe API Response:', data);
   
-      // Korrekte Verarbeitung von 'sources_list' zu 'citations'
+      // --- KORREKTUR HIER: Schlüsselnamen angepasst ---
+      // Das Backend sendet "Quelle" und "Inhalt (Auszug)"
       const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
         id: `citation-${Date.now()}-${index}`,
-        text: source.content || 'Kein Inhalt verfügbar.', // Fallback für leeren Inhalt
-        source: source.source || 'Unbekannte Quelle', // Fallback für leere Quelle
-        url: source.metadata?.url || undefined,
+        text: source["Inhalt (Auszug)"] || 'Kein Inhalt verfügbar.', // Greife auf "Inhalt (Auszug)" zu
+        source: source["Quelle"] || 'Unbekannte Quelle',             // Greife auf "Quelle" zu
+        url: undefined, // URL wird vom Backend aktuell nicht geliefert
       }));
 
       console.log('DEBUG: Finale Citations Array:', citations);
@@ -198,9 +80,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         content: data.answer_display_text,
         sender: 'bot',
         timestamp: new Date(),
-        // Wenn citations ein leerer Array ist, wird das Feld trotzdem hinzugefügt, aber die MessageBubble wird nichts rendern.
-        // Das ist besser, als es auf undefined zu setzen, falls die Komponente ein Array erwartet.
-        citations: isCitationMode ? citations : [],
+        citations: isCitationMode && citations.length > 0 ? citations : [], // Sicherstellen, dass immer ein Array übergeben wird
       };
   
       const finalMessages = [...currentMessagesWithUser, botMessage];
@@ -231,30 +111,4 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const exportChat = (format: 'pdf' | 'txt' | 'json') => {
-    // Deine Export-Logik bleibt hier unverändert
-  };
-
-  return (
-    <ChatContext.Provider
-      value={{
-        currentSession,
-        sessions,
-        messages,
-        isCitationMode,
-        isLoading,
-        chatMode,
-        setChatMode,
-        toggleCitationMode,
-        sendMessage,
-        createNewSession,
-        loadSession,
-        exportChat,
-      }}
-    >
-      {children}
-    </ChatContext.Provider>
-  );
-};
+  }; // Ende der sendMessage Funktion
