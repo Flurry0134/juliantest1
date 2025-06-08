@@ -1,6 +1,6 @@
 // Pfad: src/components/chat/MessageBubble.tsx
 import React, { useState } from 'react';
-import { Message } from '../../types';
+import { Message } from '../../types'; // Passe den Pfad ggf. an
 import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
 
 // NEU: Imports für Markdown-Rendering
@@ -33,12 +33,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       >
         {/* --- ANPASSUNG HIER: Markdown-Rendering für Nachrichteninhalt --- */}
         <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ol:my-2 prose-ul:my-2">
-          {/*
-            Die ReactMarkdown Komponente wandelt den Text-String in formatiertes HTML um.
-            Sie erkennt automatisch Absätze, nummerierte Listen, Fett- und Kursivdruck etc.
-            remarkPlugins={[remarkGfm]} aktiviert erweiterte Markdown-Funktionen.
-            Die 'prose'-Klassen von TailwindCSS sorgen für ein schönes Grund-Styling.
-          */}
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {message.content}
           </ReactMarkdown>
