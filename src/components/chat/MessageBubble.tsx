@@ -6,6 +6,9 @@ import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+// NEU: Importiere die dedizierte CSS-Datei
+import './MarkdownStyles.css'; // Passe den Pfad ggf. an, wenn deine Datei woanders liegt
+
 interface MessageBubbleProps {
   message: Message;
 }
@@ -30,8 +33,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
         }`}
       >
-        {/* --- ANPASSUNG HIER: CSS-Klasse für Zeilenumbrüche hinzugefügt --- */}
-        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ol:my-2 prose-ul:my-2 whitespace-pre-wrap">
+        {/* --- ANPASSUNG HIER: Tailwind 'prose'-Klassen entfernt und neue Klasse zugewiesen --- */}
+        <div className="markdown-content">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {message.content}
           </ReactMarkdown>
