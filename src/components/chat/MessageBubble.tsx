@@ -1,7 +1,11 @@
 // Pfad: src/components/chat/MessageBubble.tsx
 import React, { useState } from 'react';
-import { Message } from '../../types'; // Passe den Pfad ggf. an
+import { Message } from '../../types';
 import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
+
+// Imports für Markdown-Rendering
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MessageBubbleProps {
   message: Message;
@@ -9,13 +13,12 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
-  
+
   const isUserMessage = message.sender === 'user';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+
   const handleFeedback = (type: 'positive' | 'negative') => {
     setFeedback(type);
-    // In a real app, this would send feedback to the server
     console.log(`User gave ${type} feedback for message: ${message.id}`);
   };
 
@@ -28,10 +31,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
         }`}
       >
-        {/* --- ANPASSUNG HIER: CSS-Klasse für Zeilenumbrüche hinzugefügt --- */}
-        {/* Die 'whitespace-pre-wrap' Klasse sorgt dafür, dass Zeilenumbrüche (\n) im Text korrekt dargestellt werden. */}
-        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-        
+        {/* Markdown-Rendering für den Nachrichteninhalt */}
+        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ol:my-2 prose-ul:my-2">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
+
         {/* Quellen (Citations) */}
         {message.citations && message.citations.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-500">
@@ -59,12 +65,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </ul>
           </div>
         )}
-        
+
         <div className="mt-1 text-right">
           <span className="text-xs opacity-70">{time}</span>
         </div>
       </div>
-      
+
       {!isUserMessage && (
         <div className="ml-2 flex flex-col justify-end">
           <div className="flex space-x-1">
