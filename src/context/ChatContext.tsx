@@ -173,7 +173,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(true);
 
     try {
-      const apiUrl = 'https://d864-78-42-249-25.ngrok-free.app/ask';
+      const apiUrl = 'https://3d93-78-42-249-25.ngrok-free.app/ask';
       
       // NEU: Wandle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
       let backendMode: string;
