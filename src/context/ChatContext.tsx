@@ -1,6 +1,131 @@
-// In src/context/ChatContext.tsx
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  ReactNode,
+} from 'react';
+// Stelle sicher, dass der Pfad zu deinen Typdefinitionen korrekt ist
+import { Message, ChatSession, Citation, ChatMode } from '../types';
 
-// ... (Rest deines Codes bleibt gleich) ...
+interface ChatContextType {
+  currentSession: ChatSession | null;
+  sessions: ChatSession[];
+  messages: Message[];
+  isCitationMode: boolean;
+  isLoading: boolean;
+  chatMode: ChatMode; // NEU
+  setChatMode: (mode: ChatMode) => void; // NEU
+  toggleCitationMode: () => void;
+  sendMessage: (content: string) => Promise<void>;
+  createNewSession: () => void;
+  loadSession: (sessionId: string) => void;
+  exportChat: (format: 'pdf' | 'txt' | 'json') => void;
+}
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (context === undefined) {
+    throw new Error('useChat must be used within a ChatProvider');
+  }
+  return context;
+};
+
+export const ChatProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isCitationMode, setIsCitationMode] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  // NEU: Zustand für den Chat-Modus, mit 'knowledgebase_fallback' als Standard
+  const [chatMode, setChatMode] = useState<ChatMode>('knowledgebase_fallback');
+
+
+  const _createNewSessionLogic = () => {
+    const newSessionId = Date.now().toString();
+    const newSession: ChatSession = {
+      id: newSessionId,
+      title: `Chat ${sessions.length + 1}`,
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setSessions((prevSessions) => [newSession, ...prevSessions]);
+    setCurrentSession(newSession);
+    setMessages([]);
+    return newSession;
+  };
+
+  // Lade Sessions UND den letzten Chat-Modus beim Start
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('chatSessions');
+    // NEU: Lade den gespeicherten Chat-Modus
+    const savedChatMode = localStorage.getItem('chatMode') as ChatMode;
+    if (savedChatMode) {
+      setChatMode(savedChatMode);
+    }
+
+    if (savedSessions) {
+      try {
+        const parsedSessions = JSON.parse(savedSessions).map((s: any) => ({
+            ...s,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+            messages: s.messages.map((m: any) => ({...m, timestamp: new Date(m.timestamp)}))
+        }));
+        setSessions(parsedSessions);
+        const lastSessionId = localStorage.getItem('lastSessionId');
+        const lastSession = lastSessionId ? parsedSessions.find((s: ChatSession) => s.id === lastSessionId) : parsedSessions[0];
+
+        if(lastSession) {
+            setCurrentSession(lastSession);
+            setMessages(lastSession.messages);
+        } else {
+             _createNewSessionLogic();
+        }
+      } catch (e) {
+        console.error("Fehler beim Laden der Sessions:", e);
+        _createNewSessionLogic();
+      }
+    } else {
+        _createNewSessionLogic();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Speichere Änderungen an Sessions und der letzten Session-ID
+  useEffect(() => {
+    if (sessions.length > 0) {
+      localStorage.setItem('chatSessions', JSON.stringify(sessions));
+    }
+  }, [sessions]);
+
+  useEffect(() => {
+    if (currentSession) {
+      localStorage.setItem('lastSessionId', currentSession.id);
+    }
+  }, [currentSession]);
+
+  // NEU: Speichere den Chat-Modus, wenn er sich ändert
+  useEffect(() => {
+    localStorage.setItem('chatMode', chatMode);
+  }, [chatMode]);
+
+  const createNewSession = () => _createNewSessionLogic();
+  const ensureSession = (): ChatSession => currentSession || _createNewSessionLogic();
+  const loadSession = (sessionId: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (session) {
+      setCurrentSession(session);
+      setMessages(session.messages);
+    }
+  };
+
+  const toggleCitationMode = () => setIsCitationMode(!isCitationMode);
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
@@ -25,6 +150,7 @@
       // WICHTIG: Ersetze dies mit deiner aktuellsten, aktiven ngrok-URL!
       const apiUrl = 'https://b8c7-78-42-249-25.ngrok-free.app/ask';
   
+      // NEU: Handle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
       let backendMode: string;
       switch (chatMode) {
         case 'llm':
@@ -35,7 +161,7 @@
           break;
         case 'knowledgebase_fallback':
         default:
-          backendMode = "Standard";
+          backendMode = "Standard"; // Der Fallback-Modus im Backend
           break;
       }
   
@@ -48,7 +174,7 @@
         },
         body: JSON.stringify({
           question: content,
-          mode: backendMode,
+          mode: backendMode, // Sende den korrekten Modus-String aus dem Zustand
         }),
       });
   
@@ -61,16 +187,15 @@
       }
   
       const data = await response.json();
-      
+
       console.log('DEBUG: Rohe API Response:', data);
-  
-      // --- KORREKTUR HIER: Schlüsselnamen angepasst ---
-      // Das Backend sendet "Quelle" und "Inhalt (Auszug)"
+      
+      // KORRIGIERT: Verarbeite 'sources_list' zu 'citations' mit den korrekten Schlüsseln
       const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
         id: `citation-${Date.now()}-${index}`,
         text: source["Inhalt (Auszug)"] || 'Kein Inhalt verfügbar.', // Greife auf "Inhalt (Auszug)" zu
         source: source["Quelle"] || 'Unbekannte Quelle',             // Greife auf "Quelle" zu
-        url: undefined, // URL wird vom Backend aktuell nicht geliefert
+        url: undefined, // URL wird vom Backend aktuell nicht geliefert, kann aber später hinzugefügt werden
       }));
 
       console.log('DEBUG: Finale Citations Array:', citations);
@@ -80,7 +205,9 @@
         content: data.answer_display_text,
         sender: 'bot',
         timestamp: new Date(),
-        citations: isCitationMode && citations.length > 0 ? citations : [], // Sicherstellen, dass immer ein Array übergeben wird
+        // Wenn citations ein leerer Array ist, wird das Feld trotzdem hinzugefügt, 
+        // aber die MessageBubble wird nichts rendern, da die Bedingung `length > 0` fehlschlägt.
+        citations: isCitationMode ? citations : [],
       };
   
       const finalMessages = [...currentMessagesWithUser, botMessage];
@@ -111,4 +238,30 @@
     } finally {
       setIsLoading(false);
     }
-  }; // Ende der sendMessage Funktion
+  };
+
+  const exportChat = (format: 'pdf' | 'txt' | 'json') => {
+    // Deine Export-Logik bleibt hier unverändert
+  };
+
+  return (
+    <ChatContext.Provider
+      value={{
+        currentSession,
+        sessions,
+        messages,
+        isCitationMode,
+        isLoading,
+        chatMode, // NEU hinzugefügt
+        setChatMode, // NEU hinzugefügt
+        toggleCitationMode,
+        sendMessage,
+        createNewSession,
+        loadSession,
+        exportChat,
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
+};
