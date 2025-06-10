@@ -23,7 +23,7 @@
   
     try {
       // WICHTIG: Ersetze dies mit deiner aktuellsten, aktiven ngrok-URL!
-      const apiUrl = 'https://9e3f-78-42-249-25.ngrok-free.app/ask';
+      const apiUrl = 'https://b8c7-78-42-249-25.ngrok-free.app/ask';
   
       let backendMode: string;
       switch (chatMode) {
