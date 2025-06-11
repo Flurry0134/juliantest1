@@ -191,12 +191,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       console.log('DEBUG: Rohe API Response:', data);
       
       // KORRIGIERT: Verarbeite 'sources_list' zu 'citations' mit den korrekten Schlüsseln
-      const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
-        id: `citation-${Date.now()}-${index}`,
-        text: source.content || 'Kein Inhalt verfügbar.',
-        source: source.source || 'Unbekannte Quelle',
-        url: undefined, // URL wird vom Backend aktuell nicht geliefert, kann aber später hinzugefügt werden
-      }));
+      // KORRIGIERT - NEUE VERSION:
+const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
+  id: `citation-${Date.now()}-${index}`,
+  text: source.content || 'Kein Inhalt verfügbar.', // KORRIGIERT: source.content
+  source: source.source || 'Unbekannte Quelle', // KORRIGIERT: source.source
+  url: undefined,
+}));
 
       console.log('DEBUG: Finale Citations Array:', citations);
   
