@@ -193,8 +193,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       // KORRIGIERT: Verarbeite 'sources_list' zu 'citations' mit den korrekten Schlüsseln
       const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
         id: `citation-${Date.now()}-${index}`,
-        text: source["Inhalt (Auszug)"] || 'Kein Inhalt verfügbar.', // Greife auf "Inhalt (Auszug)" zu
-        source: source["Quelle"] || 'Unbekannte Quelle',             // Greife auf "Quelle" zu
+        text: source.content || 'Kein Inhalt verfügbar.',
+        source: source.source || 'Unbekannte Quelle',
         url: undefined, // URL wird vom Backend aktuell nicht geliefert, kann aber später hinzugefügt werden
       }));
 
