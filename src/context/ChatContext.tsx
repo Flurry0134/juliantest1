@@ -14,8 +14,8 @@ interface ChatContextType {
   messages: Message[];
   isCitationMode: boolean;
   isLoading: boolean;
-  chatMode: ChatMode; // NEU
-  setChatMode: (mode: ChatMode) => void; // NEU
+  chatMode: ChatMode;
+  setChatMode: (mode: ChatMode) => void;
   toggleCitationMode: () => void;
   sendMessage: (content: string) => Promise<void>;
   createNewSession: () => void;
@@ -41,9 +41,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isCitationMode, setIsCitationMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  // NEU: Zustand für den Chat-Modus, mit 'knowledgebase_fallback' als Standard
   const [chatMode, setChatMode] = useState<ChatMode>('knowledgebase_fallback');
-
 
   const _createNewSessionLogic = () => {
     const newSessionId = Date.now().toString();
@@ -60,10 +58,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     return newSession;
   };
 
-  // Lade Sessions UND den letzten Chat-Modus beim Start
   useEffect(() => {
     const savedSessions = localStorage.getItem('chatSessions');
-    // NEU: Lade den gespeicherten Chat-Modus
     const savedChatMode = localStorage.getItem('chatMode') as ChatMode;
     if (savedChatMode) {
       setChatMode(savedChatMode);
@@ -94,10 +90,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     } else {
         _createNewSessionLogic();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Speichere Änderungen an Sessions und der letzten Session-ID
   useEffect(() => {
     if (sessions.length > 0) {
       localStorage.setItem('chatSessions', JSON.stringify(sessions));
@@ -110,7 +105,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [currentSession]);
 
-  // NEU: Speichere den Chat-Modus, wenn er sich ändert
   useEffect(() => {
     localStorage.setItem('chatMode', chatMode);
   }, [chatMode]);
@@ -150,7 +144,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       // WICHTIG: Ersetze dies mit deiner aktuellsten, aktiven ngrok-URL!
       const apiUrl = 'https://b8c7-78-42-249-25.ngrok-free.app/ask';
   
-      // NEU: Handle den Frontend-Modus aus dem Zustand in den vom Backend erwarteten String um
       let backendMode: string;
       switch (chatMode) {
         case 'llm':
@@ -161,7 +154,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
           break;
         case 'knowledgebase_fallback':
         default:
-          backendMode = "Standard"; // Der Fallback-Modus im Backend
+          backendMode = "Standard";
           break;
       }
   
@@ -174,7 +167,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         },
         body: JSON.stringify({
           question: content,
-          mode: backendMode, // Sende den korrekten Modus-String aus dem Zustand
+          mode: backendMode,
         }),
       });
   
@@ -187,17 +180,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       }
   
       const data = await response.json();
-
-      console.log('DEBUG: Rohe API Response:', data);
       
-      // KORRIGIERT: Verarbeite 'sources_list' zu 'citations' mit den korrekten Schlüsseln
-      // KORRIGIERT - NEUE VERSION:
-const citations: Citation[] = (data.sources_list || []).map((source: any, index: number) => ({
-  id: `citation-${Date.now()}-${index}`,
-  text: source.content || 'Kein Inhalt verfügbar.', // KORRIGIERT: source.content
-  source: source.source || 'Unbekannte Quelle', // KORRIGIERT: source.source
-  url: undefined,
-}));
+      console.log('DEBUG: Rohe API Response:', data);
+  
+      // --- KORREKTUR HIER: Greife auf die korrekten Schlüssel 'source' und 'content' zu ---
+      const citations: Citation[] = (data.sources_list || []).map((sourceItem: any, index: number) => ({
+        id: `citation-${Date.now()}-${index}`,
+        text: sourceItem.content || 'Kein Inhalt verfügbar.', // 'content' aus SourceItem
+        source: sourceItem.source || 'Unbekannte Quelle',   // 'source' aus SourceItem
+        url: sourceItem.metadata?.url,                      // URL optional aus metadata
+      }));
 
       console.log('DEBUG: Finale Citations Array:', citations);
   
@@ -206,9 +198,7 @@ const citations: Citation[] = (data.sources_list || []).map((source: any, index:
         content: data.answer_display_text,
         sender: 'bot',
         timestamp: new Date(),
-        // Wenn citations ein leerer Array ist, wird das Feld trotzdem hinzugefügt, 
-        // aber die MessageBubble wird nichts rendern, da die Bedingung `length > 0` fehlschlägt.
-        citations: isCitationMode ? citations : [],
+        citations: isCitationMode && citations.length > 0 ? citations : [],
       };
   
       const finalMessages = [...currentMessagesWithUser, botMessage];
@@ -253,8 +243,8 @@ const citations: Citation[] = (data.sources_list || []).map((source: any, index:
         messages,
         isCitationMode,
         isLoading,
-        chatMode, // NEU hinzugefügt
-        setChatMode, // NEU hinzugefügt
+        chatMode,
+        setChatMode,
         toggleCitationMode,
         sendMessage,
         createNewSession,
