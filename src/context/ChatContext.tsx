@@ -142,7 +142,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   
     try {
       // WICHTIG: Ersetze dies mit deiner aktuellsten, aktiven ngrok-URL!
-      const apiUrl = 'https://b8c7-78-42-249-25.ngrok-free.app/ask';
+      const apiUrl = 'https://7e56-78-42-249-25.ngrok-free.app/ask';
   
       let backendMode: string;
       switch (chatMode) {
