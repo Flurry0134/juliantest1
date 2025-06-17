@@ -1,9 +1,8 @@
+
 // Pfad: src/components/chat/MessageBubble.tsx
 import React, { useState } from 'react';
-import { Message } from '../../types';
-import { ThumbsUp, ThumbsDown, Link as LinkIcon, ExternalLink } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Message } from '../../types'; // Passe den Pfad ggf. an
+import { ThumbsUp, ThumbsDown, Link, ExternalLink } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -11,13 +10,15 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  
   const isUserMessage = message.sender === 'user';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+  
   const handleFeedback = (type: 'positive' | 'negative') => {
     setFeedback(type);
+    // In a real app, this would send feedback to the server
     console.log(`User gave ${type} feedback for message: ${message.id}`);
-  };
+  }; 
 
   return (
     <div className={`flex items-end gap-2 ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
@@ -28,14 +29,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none'
         }`}
       >
-        {/* KORREKTUR: Markdown-Rendering für den Nachrichteninhalt */}
-        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ol:my-2 prose-ul:my-2">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        </div>
+        {/* --- ANPASSUNG HIER: CSS-Klasse für Zeilenumbrüche hinzugefügt --- */}
+        {/* Die 'whitespace-pre-wrap' Klasse sorgt dafür, dass Zeilenumbrüche (\n) im Text korrekt dargestellt werden. */}
+        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
         
-        {/* KORREKTUR: Quellen (Citations) werden hier gerendert */}
+        {/* Quellen (Citations) */}
         {message.citations && message.citations.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-500">
             <h4 className="text-xs font-semibold mb-2 opacity-80">
@@ -44,7 +42,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <ul className="space-y-1.5 list-none p-0 m-0">
               {message.citations.map((citation) => (
                 <li key={citation.id} className="text-xs flex items-center gap-2">
-                  <LinkIcon size={12} className="opacity-60 flex-shrink-0" />
+                  <Link size={12} className="opacity-60 flex-shrink-0" />
                   <span className="opacity-90">{citation.source}</span>
                   {citation.url && (
                     <a
@@ -70,17 +68,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       
       {!isUserMessage && (
         <div className="ml-2 flex flex-col justify-end">
-          {/* Feedback Buttons */}
           <div className="flex space-x-1">
             <button
               onClick={() => handleFeedback('positive')}
-              className={`p-1 rounded-md ${feedback === 'positive' ? 'text-green-600 bg-green-100' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1 rounded-md ${
+                feedback === 'positive'
+                  ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900'
+                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+              }`}
+              aria-label="Thumbs up"
             >
               <ThumbsUp size={14} />
             </button>
             <button
               onClick={() => handleFeedback('negative')}
-              className={`p-1 rounded-md ${feedback === 'negative' ? 'text-red-600 bg-red-100' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1 rounded-md ${
+                feedback === 'negative'
+                  ? 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900'
+                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+              }`}
+              aria-label="Thumbs down"
             >
               <ThumbsDown size={14} />
             </button>
